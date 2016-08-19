@@ -13,7 +13,7 @@
         "php": ">=5.5.9",
         "illuminate/console": "~5.0",
         "illuminate/support": "~5.0",
-        "webfactorybulgaria/laravel-shop-gateway-paypal": "1.0.*"
+        "webfactorybulgaria/laravel-shop-gateway-paypal": "^4.1"
     },
     "autoload": {
         "classmap": [

@@ -75,7 +75,10 @@ trait ShopCalculationsTrait
      *
      * @return float
      */
-    public function getTotalDiscountAttribute() { /* TODO */ }
+    public function getTotalDiscountAttribute() {
+        if (empty($this->shopCalculations)) $this->runCalculations();
+        return round($this->shopCalculations->totalDiscount, 2);
+    }
 
     /**
      * Returns total amount to be charged base on total price, tax and discount.
@@ -123,7 +126,9 @@ trait ShopCalculationsTrait
      *
      * @return string
      */
-    public function getDisplayTotalDiscountAttribute() { /* TODO */ }
+    public function getDisplayTotalDiscountAttribute() {
+        return Shop::format($this->totalDiscount)
+    }
 
     /**
      * Returns formatted total amount to be charged base on total price, tax and discount.
@@ -150,14 +155,14 @@ trait ShopCalculationsTrait
      */
     private function runCalculations()
     {
-        if (!empty($this->shopCalculations)) return $this->shopCalculations;
+        /*if (!empty($this->shopCalculations)) return $this->shopCalculations;
         $cacheKey = $this->calculationsCacheKey;
         if (Config::get('shop.cache_calculations')
             && Cache::has($cacheKey)
         ) {
             $this->shopCalculations = Cache::get($cacheKey);
             return $this->shopCalculations;
-        }
+        }*/
 
         $this->shopCalculations = DB::table($this->table)
             ->select([
@@ -173,7 +178,8 @@ trait ShopCalculationsTrait
                 $this->table . '.id'
             )
             ->where($this->table . '.id', $this->attributes['id'])
-            ->first();
+            ->toSQL();
+        dd($this->shopCalculations);
         if (Config::get('shop.cache_calculations')) {
             Cache::put(
                 $cacheKey,
