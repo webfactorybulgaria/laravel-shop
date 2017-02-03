@@ -35,7 +35,7 @@ class ShopCartModel extends Model implements ShopCartInterface
      *
      * @var array
      */
-    protected $fillable = ['user_id'];
+    protected $fillable = ['user_id', 'session_id'];
 
     /**
      * Creates a new instance of the model.

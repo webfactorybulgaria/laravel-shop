@@ -57,7 +57,7 @@ trait ShopItemTrait
      */
     public function getDisplayNameAttribute()
     {
-        if(isset($this->itemName) && $this->itemName == 'title') $this->attributes['title'] = 'Asd';
+        if(isset($this->itemName) && $this->itemName == 'title') $this->attributes['title'] = 'Title';
         if ($this->hasObject) return $this->object->displayName;
         return isset($this->itemName)
             ? $this->attributes[$this->itemName]
@@ -148,6 +148,16 @@ trait ShopItemTrait
     public function getDisplayShippingAttribute()
     {
         return Shop::format(array_key_exists('shipping', $this->attributes) ? $this->attributes['shipping'] : 0.00);
+    }
+
+    /**
+     * Returns formatted discount for display.
+     *
+     * @return string
+     */
+    public function getDisplayDiscountAttribute()
+    {
+        return Shop::format(array_key_exists('discount', $this->attributes) ? $this->attributes['discount'] : 0.00);
     }
 
     /**

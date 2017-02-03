@@ -13,6 +13,7 @@ namespace Amsgames\LaravelShop;
 
 use Illuminate\Routing\Router;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
+use Amsgames\LaravelShop\Events\UserLogged;
 
 class LaravelShopProvider extends ServiceProvider
 {
@@ -41,6 +42,9 @@ class LaravelShopProvider extends ServiceProvider
         // Register commands
         $this->commands('command.laravel-shop.migration');
 
+        //keep visitor id
+        session(['visitor_id' => session()->getId()]);
+
     }
 
     /**
@@ -55,6 +59,11 @@ class LaravelShopProvider extends ServiceProvider
         $this->registerCommands();
 
         $this->mergeConfig();
+
+        /*
+         * Subscribe to events class
+         */
+        $this->app->events->subscribe(new UserLogged());
     }
 
     /**

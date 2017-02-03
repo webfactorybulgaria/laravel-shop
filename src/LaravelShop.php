@@ -161,6 +161,7 @@ class LaravelShop
             $statusCode = $order->statusCode;
             \event(new OrderPlaced($order->id));
             static::$gateway->setCallbacks($order);
+
             if (static::$gateway->onCharge($order)) {
                 $order->statusCode = static::$gateway->getTransactionStatusCode();
                 $order->save();

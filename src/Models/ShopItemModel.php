@@ -16,6 +16,7 @@ use Amsgames\LaravelShop\Contracts\ShopItemInterface;
 use Amsgames\LaravelShop\Traits\ShopItemTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
+use TypiCMS\Modules\Attributes\Models\Attribute;
 
 class ShopItemModel extends Model implements ShopItemInterface
 {
@@ -48,7 +49,7 @@ class ShopItemModel extends Model implements ShopItemInterface
      *
      * @var string
      */
-    protected $fillable = ['user_id', 'cart_id', 'shop_id', 'sku', 'price', 'tax', 'shipping', 'currency', 'quantity', 'class', 'reference_id'];
+    protected $fillable = ['user_id', 'session_id', 'cart_id', 'shop_id', 'sku', 'price', 'tax', 'shipping', 'discount', 'currency', 'quantity', 'class', 'reference_id', 'attributes_hash'];
 
     /**
      * Creates a new instance of the model.
@@ -72,6 +73,14 @@ class ShopItemModel extends Model implements ShopItemInterface
     }
 
     /**
+     * One-to-Many relations with the item attributes model.
+     */
+    public function itemAttributes()
+    {
+        return $this->hasMany('TypiCMS\Modules\Shop\Models\ItemAttribute');
+    }
+
+    /**
      * One-to-One relations with the cart model.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
@@ -91,4 +100,32 @@ class ShopItemModel extends Model implements ShopItemInterface
         return $this->belongsTo(Config::get('shop.order'), 'order_id');
     }
 
+    /**
+     * Returns all selected attributes for the item.
+     *
+     * @return array
+     */
+    public function getReadableAttributesAttribute()
+    {
+        foreach($this->itemAttributes as $attribute) {
+            if($attribute->attribute_reference_id) {
+                $attr = Attribute::where('attributes.id', $attribute->attribute_reference_id)->with('attributeGroup')->first();
+                $attributes[$attr->attributeGroup->value] = $attr->value;
+            } else {
+                $attributes[$attribute->group_value] = $attribute->attribute_value;
+            }
+        }
+        return $attributes;
+    }
+
+    /**
+     * Returns the related product to the item.
+     *
+     * @return string
+     */
+    public function getProductAttribute()
+    {
+        $product = call_user_func($this->class . '::find', $this->reference_id);
+        return $product->title;
+    }
 }

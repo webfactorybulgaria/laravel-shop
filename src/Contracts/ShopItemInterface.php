@@ -86,6 +86,13 @@ interface ShopItemInterface
     public function getDisplayShippingAttribute();
 
     /**
+     * Returns formatted discount for display.
+     *
+     * @return string
+     */
+    public function getDisplayDiscountAttribute();
+
+    /**
      * Returns flag indicating if item was purchased by user.
      *
      * @return bool

@@ -13,6 +13,7 @@ namespace Amsgames\LaravelShop\Traits;
  */
 
 use Shop;
+use Cookie;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -72,51 +73,99 @@ trait ShopCartTrait
      * @param mixed $item     Item to add, can be an Store Item, a Model with ShopItemTrait or an array.
      * @param int   $quantity Item quantity in cart.
      */
-    public function add($item, $quantity = 1, $quantityReset = false)
+    public function add($item, $attributes = [], $quantity = 1, $quantityReset = false)
     {
         if (!is_array($item) && !$item->isShoppable) return;
-        // Get item
-        $cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku);
+
+        $attributesHash = sha1(serialize($attributes));
+        $cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku, $attributesHash);
+
         // Add new or sum quantity
         if (empty($cartItem)) {
             $reflection = null;
             if (is_object($item)) {
                 $reflection = new \ReflectionClass($item);
             }
+
             $cartItem = call_user_func( Config::get('shop.item') . '::create', [
-                'user_id'       => $this->user->shopId,
-                'cart_id'       => $this->attributes['id'],
-                'sku'           => is_array($item) ? $item['sku'] : $item->sku,
-                'price'         => is_array($item) ? $item['price'] : $item->price,
-                'tax'           => is_array($item) 
-                                    ? (array_key_exists('tax', $item)
-                                        ?   $item['tax']
-                                        :   0
-                                    ) 
-                                    : (isset($item->tax) && !empty($item->tax)
-                                        ?   $item->tax
-                                        :   0
-                                    ),
-                'shipping'      => is_array($item) 
-                                    ? (array_key_exists('shipping', $item)
-                                        ?   $item['shipping']
-                                        :   0
-                                    ) 
-                                    : (isset($item->shipping) && !empty($item->shipping)
-                                        ?   $item->shipping
-                                        :   0
-                                    ),
-                'currency'      => Config::get('shop.currency'),
-                'quantity'      => $quantity,
-                'class'         => is_array($item) ? null : $reflection->getName(),
-                'reference_id'  => is_array($item) ? null : $item->shopId,
+                'user_id'           => !empty($this->user->shopId) ? $this->user->shopId : 0,
+                'session_id'        => session('visitor_id'),
+                'cart_id'           => $this->attributes['id'],
+                'sku'               => is_array($item) ? $item['sku'] : $item->sku,
+                'price'             => is_array($item) ? $item['price'] : $item->price,
+                'tax'               => is_array($item) 
+                                        ? (array_key_exists('tax', $item)
+                                            ?   $item['tax']
+                                            :   0
+                                        ) 
+                                        : (isset($item->tax) && !empty($item->tax)
+                                            ?   $item->tax
+                                            :   0
+                                        ),
+                'shipping'          => is_array($item) 
+                                        ? (array_key_exists('shipping', $item)
+                                            ?   $item['shipping']
+                                            :   0
+                                        ) 
+                                        : (isset($item->shipping) && !empty($item->shipping)
+                                            ?   $item->shipping
+                                            :   0
+                                        ),
+                'discount'          => $item->calculateDiscount(),
+                'currency'          => Config::get('shop.currency'),
+                'quantity'          => $quantity,
+                'class'             => is_array($item) ? null : $reflection->getName(),
+                'reference_id'      => is_array($item) ? null : $item->shopId,
+                'attributes_hash'   => $attributesHash,
             ]);
+            foreach($attributes as $group => $attribute) {
+                if($attributes != '') {
+                    if($group == 'custom') {
+                        foreach($attribute as $cGr => $cAttr) {
+                            $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
+                                'item_id'                   => $cartItem->id,
+                                'group_class'               => 'TypiCMS\Modules\Attributes\Models\AttributeGroup',
+                                'group_value'               => $cGr,
+                                'attribute_class'           => 'TypiCMS\Modules\Attributes\Models\Attribute',
+                                'attribute_reference_id'    => null,
+                                'attribute_value'           => $cAttr,
+                            ]);
+                        }
+                    } else {
+                        $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
+                            'item_id'                       => $cartItem->id,
+                            'group_class'                   => 'TypiCMS\Modules\Attributes\Models\AttributeGroup',
+                            'group_value'                   => $group,
+                            'attribute_class'               => 'TypiCMS\Modules\Attributes\Models\Attribute',
+                            'attribute_reference_id'        => $attribute,
+                            'attribute_value'               => null,
+                        ]);
+                    }
+                }
+            }
+
+            $this->resetCalculations();
         } else {
-            $cartItem->quantity = $quantityReset 
-                ? $quantity 
-                : $cartItem->quantity + $quantity;
-            $cartItem->save();
+            $this->increase($cartItem, $quantity, $quantityReset);
         }
+
+        return $this;
+    }
+
+    /**
+     * Directly increase already existing item
+     *
+     * @param Item  $item     Item to add.
+     * @param int   $quantity Item quantity in cart.
+     * @return Item
+     */
+    public function increase($item, $quantity = 1, $quantityReset = false)
+    {
+        $item->quantity = $quantityReset 
+            ? $quantity 
+            : $item->quantity + $quantity;
+        $item->save();
+
         $this->resetCalculations();
         return $this;
     }
@@ -133,16 +182,16 @@ trait ShopCartTrait
     public function remove($item, $quantity = 0)
     {
         // Get item
-        $cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku);
+        //$cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku, $item->attributes_hash);
         // Remove or decrease quantity
-        if (!empty($cartItem)) {
-            if (!empty($quantity)) {
-                $cartItem->quantity -= $quantity;
-                $cartItem->save();
-                if ($cartItem->quantity > 0) return true;
-            }
-            $cartItem->delete();
+
+        if (!empty($quantity)) {
+            $item->quantity -= $quantity;
+            $item->save();
+            if ($item->quantity > 0) return true;
         }
+        $item->delete();
+
         $this->resetCalculations();
         return $this;
     }
@@ -196,6 +245,11 @@ trait ShopCartTrait
         return $query->where('user_id', $userId);
     }
 
+    public function scopeWhereVisitorId($query)
+    {
+        return $query->where('session_id', session('visitor_id'));
+    }
+
     /**
      * Scope to current user cart.
      *
@@ -205,7 +259,9 @@ trait ShopCartTrait
      */
     public function scopeWhereCurrent($query)
     {
-        if (Auth::guest()) return $query;
+        return $query->whereVisitorId();
+        //TODO: use user_id as well
+        if (Auth::guest()) return $query->whereVisitorId();
         return $query->whereUser(Auth::user()->shopId);
     }
 
@@ -218,13 +274,20 @@ trait ShopCartTrait
      */
     public function scopeCurrent($query)
     {
-        if (Auth::guest()) return;
         $cart = $query->whereCurrent()->first();
         if (empty($cart)) {
-            $cart = call_user_func( Config::get('shop.cart') . '::create', [
-                'user_id' =>  Auth::user()->shopId
-            ]);
+            if (!Auth::guest()) {
+                $cart = call_user_func( Config::get('shop.cart') . '::create', [
+                    'user_id' =>  Auth::user()->shopId,
+                    'session_id' =>  session('visitor_id')
+                ]);
+            } else {
+                $cart = call_user_func( Config::get('shop.cart') . '::create', [
+                    'session_id' =>  session('visitor_id')
+                ]);
+            }
         }
+
         return $cart;
     }
 
@@ -295,12 +358,13 @@ trait ShopCartTrait
      *
      * @return mixed
      */
-    private function getItem($sku)
+    private function getItem($sku, $attributesHash)
     {
         $className  = Config::get('shop.item');
         $item       = new $className();
         return $item->where('sku', $sku)
             ->where('cart_id', $this->attributes['id'])
+            ->where('attributes_hash', $attributesHash)
             ->first();
     }
 

@@ -27,6 +27,15 @@ trait ShopCalculationsTrait
     private $shopCalculations = null;
 
     /**
+     * Property used to store discount coupon.
+     * @var array
+     */
+    private $coupon = [
+        'value'   => 0.00,
+        'percent' => 0.00,
+    ];
+
+    /**
      * Returns total amount of items in cart.
      *
      * @return int
@@ -68,6 +77,22 @@ trait ShopCalculationsTrait
     {
         if (empty($this->shopCalculations)) $this->runCalculations();
         return round($this->shopCalculations->totalShipping, 2);
+    }
+
+    /**
+     * Used to set the discount coupon
+     *
+     * @return float
+     */
+    public function setCoupon($coupon)
+    {
+        if ($coupon->value > 0) {
+            $this->coupon['value'] = $coupon->value;
+        }
+        elseif ($coupon->discount > 0) {
+            $this->coupon['percent'] = $coupon->discount;
+        }
+        session(['coupon' => $coupon]);
     }
 
     /**
@@ -127,7 +152,7 @@ trait ShopCalculationsTrait
      * @return string
      */
     public function getDisplayTotalDiscountAttribute() {
-        return Shop::format($this->totalDiscount)
+        return Shop::format($this->totalDiscount);
     }
 
     /**
@@ -155,21 +180,23 @@ trait ShopCalculationsTrait
      */
     private function runCalculations()
     {
-        /*if (!empty($this->shopCalculations)) return $this->shopCalculations;
+        //$this->resetCalculations(); //TODO: REMOVE THIS TEMPORARY LINE
+        if (!empty($this->shopCalculations)) return $this->shopCalculations;
         $cacheKey = $this->calculationsCacheKey;
         if (Config::get('shop.cache_calculations')
             && Cache::has($cacheKey)
         ) {
             $this->shopCalculations = Cache::get($cacheKey);
             return $this->shopCalculations;
-        }*/
+        }
 
         $this->shopCalculations = DB::table($this->table)
             ->select([
                 DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.quantity) as itemCount'),
                 DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.price * typicms_' . Config::get('shop.item_table') . '.quantity) as totalPrice'),
                 DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.tax * typicms_' . Config::get('shop.item_table') . '.quantity) as totalTax'),
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.shipping * typicms_' . Config::get('shop.item_table') . '.quantity) as totalShipping')
+                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.shipping * typicms_' . Config::get('shop.item_table') . '.quantity) as totalShipping'),
+                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.discount * typicms_' . Config::get('shop.item_table') . '.quantity) as totalDiscount')
             ])
             ->join(
                 Config::get('shop.item_table'),
@@ -178,8 +205,24 @@ trait ShopCalculationsTrait
                 $this->table . '.id'
             )
             ->where($this->table . '.id', $this->attributes['id'])
-            ->toSQL();
-        dd($this->shopCalculations);
+            ->first();
+
+        if(!is_null(session('coupon'))) {
+            $this->setCoupon(session('coupon'));
+        }
+
+        $basePrice = $this->shopCalculations->totalPrice;
+
+        //Apply cash discount
+        $this->shopCalculations->totalPrice -= $this->coupon['value'];
+        $this->shopCalculations->cashDiscount = $this->coupon['value'];
+
+        //Apply % discount
+        $this->shopCalculations->totalPrice -= $this->shopCalculations->totalPrice * $this->coupon['percent'] / 100;
+        $this->shopCalculations->percentageDiscount = $basePrice - $this->shopCalculations->totalPrice;
+
+        $this->shopCalculations->totalDiscount = $this->shopCalculations->cashDiscount +  $this->shopCalculations->percentageDiscount;
+
         if (Config::get('shop.cache_calculations')) {
             Cache::put(
                 $cacheKey,
@@ -193,7 +236,7 @@ trait ShopCalculationsTrait
     /**
      * Resets cart calculations.
      */
-    private function resetCalculations ()
+    private function resetCalculations()
     {
         $this->shopCalculations = null;
         if (Config::get('shop.cache_calculations')) {
