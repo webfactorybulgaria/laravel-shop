@@ -192,11 +192,11 @@ trait ShopCalculationsTrait
 
         $this->shopCalculations = DB::table($this->table)
             ->select([
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.quantity) as itemCount'),
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.price * typicms_' . Config::get('shop.item_table') . '.quantity) as totalPrice'),
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.tax * typicms_' . Config::get('shop.item_table') . '.quantity) as totalTax'),
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.shipping * typicms_' . Config::get('shop.item_table') . '.quantity) as totalShipping'),
-                DB::raw('sum(typicms_' . Config::get('shop.item_table') . '.discount * typicms_' . Config::get('shop.item_table') . '.quantity) as totalDiscount')
+                DB::raw('sum(' . DB::getTablePrefix() . Config::get('shop.item_table') . '.quantity) as itemCount'),
+                DB::raw('sum(' . DB::getTablePrefix() . Config::get('shop.item_table') . '.price * ' . DB::getTablePrefix() . Config::get('shop.item_table') . '.quantity) as totalPrice'),
+                DB::raw('sum(' . DB::getTablePrefix() . Config::get('shop.item_table') . '.tax * ' . DB::getTablePrefix() . Config::get('shop.item_table') . '.quantity) as totalTax'),
+                DB::raw('sum(' . DB::getTablePrefix() . Config::get('shop.item_table') . '.shipping * ' . DB::getTablePrefix() . Config::get('shop.item_table') . '.quantity) as totalShipping'),
+                DB::raw('sum(' . DB::getTablePrefix() . Config::get('shop.item_table') . '.discount * ' . DB::getTablePrefix() . Config::get('shop.item_table') . '.quantity) as totalDiscount')
             ])
             ->join(
                 Config::get('shop.item_table'),
@@ -210,18 +210,23 @@ trait ShopCalculationsTrait
         if(!is_null(session('coupon'))) {
             $this->setCoupon(session('coupon'));
         }
-
         $basePrice = $this->shopCalculations->totalPrice;
 
         //Apply cash discount
-        $this->shopCalculations->totalPrice -= $this->coupon['value'];
+        if ($this->coupon['value']) {
+            $this->shopCalculations->totalPrice -= $this->coupon['value'];
+        }
         $this->shopCalculations->cashDiscount = $this->coupon['value'];
 
         //Apply % discount
-        $this->shopCalculations->totalPrice -= $this->shopCalculations->totalPrice * $this->coupon['percent'] / 100;
-        $this->shopCalculations->percentageDiscount = $basePrice - $this->shopCalculations->totalPrice;
+        if ($this->coupon['percent']) {
+            $this->shopCalculations->totalPrice -= $this->shopCalculations->totalPrice * $this->coupon['percent'] / 100;
+            $this->shopCalculations->percentageDiscount = $basePrice - $this->shopCalculations->totalPrice;
+        } else {
+            $this->shopCalculations->percentageDiscount = 0;
+        }
 
-        $this->shopCalculations->totalDiscount = $this->shopCalculations->cashDiscount +  $this->shopCalculations->percentageDiscount;
+        $this->shopCalculations->totalDiscount = $this->shopCalculations->cashDiscount + $this->shopCalculations->percentageDiscount;
 
         if (Config::get('shop.cache_calculations')) {
             Cache::put(

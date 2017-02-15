@@ -124,9 +124,9 @@ trait ShopCartTrait
                         foreach($attribute as $cGr => $cAttr) {
                             $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
                                 'item_id'                   => $cartItem->id,
-                                'group_class'               => 'TypiCMS\Modules\Attributes\Models\AttributeGroup',
+                                'group_class'               => 'TypiCMS\Modules\Attributes\Shells\Models\AttributeGroup',
                                 'group_value'               => $cGr,
-                                'attribute_class'           => 'TypiCMS\Modules\Attributes\Models\Attribute',
+                                'attribute_class'           => 'TypiCMS\Modules\Attributes\Shells\Models\Attribute',
                                 'attribute_reference_id'    => null,
                                 'attribute_value'           => $cAttr,
                             ]);
@@ -134,9 +134,9 @@ trait ShopCartTrait
                     } else {
                         $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
                             'item_id'                       => $cartItem->id,
-                            'group_class'                   => 'TypiCMS\Modules\Attributes\Models\AttributeGroup',
+                            'group_class'                   => 'TypiCMS\Modules\Attributes\Shells\Models\AttributeGroup',
                             'group_value'                   => $group,
-                            'attribute_class'               => 'TypiCMS\Modules\Attributes\Models\Attribute',
+                            'attribute_class'               => 'TypiCMS\Modules\Attributes\Shells\Models\Attribute',
                             'attribute_reference_id'        => $attribute,
                             'attribute_value'               => null,
                         ]);

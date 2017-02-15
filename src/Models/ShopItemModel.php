@@ -16,7 +16,7 @@ use Amsgames\LaravelShop\Contracts\ShopItemInterface;
 use Amsgames\LaravelShop\Traits\ShopItemTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
-use TypiCMS\Modules\Attributes\Models\Attribute;
+use TypiCMS\Modules\Attributes\Shells\Models\Attribute;
 
 class ShopItemModel extends Model implements ShopItemInterface
 {
@@ -77,7 +77,7 @@ class ShopItemModel extends Model implements ShopItemInterface
      */
     public function itemAttributes()
     {
-        return $this->hasMany('TypiCMS\Modules\Shop\Models\ItemAttribute');
+        return $this->hasMany('TypiCMS\Modules\Shop\Shells\Models\ItemAttribute');
     }
 
     /**

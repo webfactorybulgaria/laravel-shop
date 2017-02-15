@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Facades\Mail;
-use TypiCMS\Modules\Shop\Models\Cart;
-use TypiCMS\Modules\Shop\Models\Item;
+use TypiCMS\Modules\Shop\Shells\Models\Cart;
+use TypiCMS\Modules\Shop\Shells\Models\Item;
 
 class UserLogged
 {
