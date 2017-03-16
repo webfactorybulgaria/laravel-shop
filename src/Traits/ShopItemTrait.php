@@ -20,12 +20,17 @@ use InvalidArgumentException;
 trait ShopItemTrait
 {
 
+    public function shoppables()
+    {
+        return $this->morphMany(Config::get('shop.item'), 'shoppable');
+    }
+
     /**
      * Returns flag indicating if item has an object.
      *
      * @return bool
      */
-    public function getHasObjectAttribute() 
+    public function getHasObjectAttribute()
     {
         return array_key_exists('class', $this->attributes) && !empty($this->attributes['class']);
     }
@@ -57,14 +62,11 @@ trait ShopItemTrait
      */
     public function getDisplayNameAttribute()
     {
-        if(isset($this->itemName) && $this->itemName == 'title') $this->attributes['title'] = 'Title';
-        if ($this->hasObject) return $this->object->displayName;
+        // if(isset($this->itemName) && $this->itemName == 'title') $this->attributes['title'] = 'Title';
+        // if ($this->hasObject) return $this->object->displayName;
         return isset($this->itemName)
             ? $this->attributes[$this->itemName]
-            : (array_key_exists('name', $this->attributes)
-                ? $this->attributes['name']
-                : ''
-            );
+            : $this->title;
     }
 
     /**

@@ -18,10 +18,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use TypiCMS\Modules\Attributes\Shells\Models\Attribute;
 
-class ShopItemModel extends Model implements ShopItemInterface
+class ShopItemModel extends Model //implements ShopItemInterface
 {
 
-    use ShopItemTrait;
+    //use ShopItemTrait;
 
     /**
      * The database table used by the model.
@@ -49,7 +49,7 @@ class ShopItemModel extends Model implements ShopItemInterface
      *
      * @var string
      */
-    protected $fillable = ['user_id', 'session_id', 'cart_id', 'shop_id', 'sku', 'price', 'tax', 'shipping', 'discount', 'currency', 'quantity', 'class', 'reference_id', 'attributes_hash'];
+    protected $fillable = ['user_id', 'session_id', 'cart_id', 'shop_id', 'sku', 'price', 'tax', 'shipping', 'discount', 'currency', 'quantity', 'attributes_hash'];
 
     /**
      * Creates a new instance of the model.
@@ -60,6 +60,11 @@ class ShopItemModel extends Model implements ShopItemInterface
     {
         parent::__construct($attributes);
         $this->table = Config::get('shop.item_table');
+    }
+
+    public function shoppable()
+    {
+        return $this->morphTo();
     }
 
     /**
@@ -107,6 +112,7 @@ class ShopItemModel extends Model implements ShopItemInterface
      */
     public function getReadableAttributesAttribute()
     {
+        $attributes = [];
         foreach($this->itemAttributes as $attribute) {
             if($attribute->attribute_reference_id) {
                 $attr = Attribute::where('attributes.id', $attribute->attribute_reference_id)->with('attributeGroup')->first();
@@ -125,7 +131,12 @@ class ShopItemModel extends Model implements ShopItemInterface
      */
     public function getProductAttribute()
     {
-        $product = call_user_func($this->class . '::find', $this->reference_id);
-        return $product->title;
+        //$product = call_user_func($this->class . '::find', $this->reference_id);
+        return $this->shoppable->title;
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->shoppable->displayName;
     }
 }
