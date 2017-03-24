@@ -17,7 +17,7 @@ use Shop;
 use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
 
-trait ShopItemTrait
+trait ShoppableTrait
 {
 
     public function shoppables()

@@ -32,7 +32,7 @@ interface ShopCartInterface
     /**
      * Adds item to cart.
      *
-     * @param mixed $item     Item to add, can be an Store Item, a Model with ShopItemTrait or an array.
+     * @param mixed $item     Item to add, can be an Store Item, a Model with ShoppableTrait or an array.
      * @param int   $quantity Item quantity in cart.
      */
     public function add($item, $quantity = 1, $quantityReset = self::QUANTITY_ADDITION);
@@ -41,7 +41,7 @@ interface ShopCartInterface
      * Removes an item from the cart or decreases its quantity.
      * Returns flag indicating if removal was successful.
      *
-     * @param mixed $item     Item to remove, can be an Store Item, a Model with ShopItemTrait or an array.
+     * @param mixed $item     Item to remove, can be an Store Item, a Model with ShoppableTrait or an array.
      * @param int   $quantity Item quantity to decrease. 0 if wanted item to be removed completly.
      *
      * @return bool

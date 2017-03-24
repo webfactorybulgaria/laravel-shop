@@ -4,7 +4,7 @@ In order to run test cases you must setup your laravel package development envir
 
 ## Create testing environment
 
-There are multiple solutions to test this package. 
+There are multiple solutions to test this package.
 
 Our testing environment uses a new installation of **Laravel** and [studio](https://github.com/franzliedke/studio).
 
@@ -104,11 +104,11 @@ And the model file to look like:
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
-use Amsgames\LaravelShop\Traits\ShopItemTrait;
+use Amsgames\LaravelShop\Traits\ShoppableTrait;
 
 class TestProduct extends Model
 {
-    use ShopItemTrait;
+    use ShoppableTrait;
 
     /**
      * The database table used by the model.
@@ -137,7 +137,7 @@ class TestProduct extends Model
     * @var string
     */
     protected $itemRouteParams = ['sku'];
-		
+
 }
 ```
 

@@ -68,6 +68,16 @@ trait ShopCartTrait
     }
 
     /**
+     * Empty cart.
+     *
+     */
+    public function emptyCart()
+    {
+        $this->items()->delete();
+        $this->resetCalculations();
+    }
+
+    /**
      * Adds item to cart.
      *
      * @param mixed $item     Item to add, can be an Store Item, a Model with ShopItemTrait or an array.
@@ -76,7 +86,7 @@ trait ShopCartTrait
     public function add($item, $attributes = [], $quantity = 1, $quantityReset = false)
     {
         if (!is_array($item) && !$item->isShoppable) return;
-// dd($attributes);
+
         $attributesHash = sha1(serialize($attributes));
         $cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku, $attributesHash);
 
@@ -120,6 +130,27 @@ trait ShopCartTrait
             // This looks a bit backwards but this is the proper way of storing the relation
             $item->shoppables()->save($cartItem);
 
+            if (!empty($attributes) && is_array($attributes)) {
+                foreach ($attributes as $attributeType => $attributeValues) {
+                    if ($type = Config::get('shop.attribute_models.' . $attributeType)) {
+                        if (is_array($attributeValues)) {
+                            foreach ($attributeValues as $cgr => $cAttr) {
+                                $attr = new $type();
+                                $attr->fillAttr($cgr, $cAttr);
+
+                                $class = Config::get('shop.item_attributes');
+                                $itemAttribute = new $class();
+                                // dd($itemAttribute);
+                                $itemAttribute->atributeObject()->associate($attr);
+
+                                $cartItem->itemAttributes()->save($itemAttribute);
+
+                            }
+                        }
+                    }
+                }
+            }
+/*
             if (!empty($attributes['attribute']) && is_array($attributes['attribute'])) {
                 foreach($attributes['attribute'] as $cGr => $cAttr) {
                     $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
@@ -146,7 +177,7 @@ trait ShopCartTrait
                 }
 
             }
-
+*/
             $this->resetCalculations();
         } else {
             $this->increase($cartItem, $quantity, $quantityReset);

@@ -13,15 +13,12 @@ namespace Amsgames\LaravelShop\Models;
  */
 
 use Amsgames\LaravelShop\Contracts\ShopItemInterface;
-use Amsgames\LaravelShop\Traits\ShopItemTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Config;
 use TypiCMS\Modules\Attributes\Shells\Models\Attribute;
 
 class ShopItemModel extends Model //implements ShopItemInterface
 {
-
-    //use ShopItemTrait;
 
     /**
      * The database table used by the model.
@@ -82,7 +79,12 @@ class ShopItemModel extends Model //implements ShopItemInterface
      */
     public function itemAttributes()
     {
-        return $this->hasMany('TypiCMS\Modules\Shop\Shells\Models\ItemAttribute');
+        return $this->hasMany(Config::get('shop.item_attributes'));
+    }
+
+    public function itemAttributesEager()
+    {
+        return $this->itemAttributes()->with('attribute');
     }
 
     /**
@@ -131,7 +133,6 @@ class ShopItemModel extends Model //implements ShopItemInterface
      */
     public function getProductAttribute()
     {
-        //$product = call_user_func($this->class . '::find', $this->reference_id);
         return $this->shoppable->title;
     }
 
