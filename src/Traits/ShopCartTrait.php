@@ -141,7 +141,7 @@ trait ShopCartTrait
                                 $class = Config::get('shop.item_attributes');
                                 $itemAttribute = new $class();
                                 // dd($itemAttribute);
-                                $itemAttribute->atributeObject()->associate($attr);
+                                $itemAttribute->attributeObject()->associate($attr);
 
                                 $cartItem->itemAttributes()->save($itemAttribute);
 

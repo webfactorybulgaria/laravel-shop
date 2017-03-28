@@ -48,6 +48,8 @@ class ShopItemModel extends Model //implements ShopItemInterface
      */
     protected $fillable = ['user_id', 'session_id', 'cart_id', 'shop_id', 'sku', 'price', 'tax', 'shipping', 'discount', 'currency', 'quantity', 'attributes_hash'];
 
+    protected $with = ['shoppable'];
+
     /**
      * Creates a new instance of the model.
      *
@@ -84,7 +86,7 @@ class ShopItemModel extends Model //implements ShopItemInterface
 
     public function itemAttributesEager()
     {
-        return $this->itemAttributes()->with('attribute');
+        return $this->itemAttributes()->with('attributeObject');
     }
 
     /**
