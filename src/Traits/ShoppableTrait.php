@@ -96,6 +96,27 @@ trait ShoppableTrait
     }
 
     /**
+     * Returns the item price based on qtty and attributes.
+     *
+     * @return decimal
+     */
+    public function getSpecificBasePrice($qtty, $attributes, $cart)
+    {
+        // by default the qtty and chosen attributes do not affect the price but this may not always be the case
+        return $this->getBasePrice();
+    }
+
+    /**
+     * Returns the base price.
+     *
+     * @return decimal
+     */
+    public function getBasePrice()
+    {
+        return $this->price;
+    }
+
+    /**
      * Returns price formatted for display.
      *
      * @return string

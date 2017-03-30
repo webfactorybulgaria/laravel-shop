@@ -90,11 +90,30 @@ trait ShopCartTrait
         $attributesHash = sha1(serialize($attributes));
         $cartItem = $this->getItem(is_array($item) ? $item['sku'] : $item->sku, $attributesHash);
 
+
         // Add new or sum quantity
         if (empty($cartItem)) {
-            $reflection = null;
-            if (is_object($item)) {
-                $reflection = new \ReflectionClass($item);
+
+            $arrAttributeObjects = [];
+            if (!empty($attributes) && is_array($attributes)) {
+                foreach ($attributes as $attributeType => $attributeValues) {
+                    if ($type = Config::get('shop.attribute_models.' . $attributeType)) {
+                        if (is_array($attributeValues)) {
+                            foreach ($attributeValues as $cgr => $cAttr) {
+                                $attr = new $type();
+                                $attr->fillAttr($cgr, $cAttr);
+
+                                $class = Config::get('shop.item_attributes');
+                                $itemAttribute = new $class();
+
+                                $itemAttribute->attributeObject()->associate($attr);
+
+                                $arrAttributeObjects[] = $itemAttribute;
+
+                            }
+                        }
+                    }
+                }
             }
 
             $class = Config::get('shop.item');
@@ -103,7 +122,7 @@ trait ShopCartTrait
             $cartItem->session_id = session('visitor_id');
             $cartItem->cart_id = $this->id;
             $cartItem->sku = is_array($item) ? $item['sku'] : $item->sku;
-            $cartItem->price = is_array($item) ? $item['price'] : $item->price;
+            $cartItem->price = is_array($item) ? $item['price'] : $item->getSpecificBasePrice($quantity, $arrAttributeObjects, $this);
             $cartItem->tax = is_array($item)
                                         ? (array_key_exists('tax', $item)
                                             ?   $item['tax']
@@ -130,54 +149,9 @@ trait ShopCartTrait
             // This looks a bit backwards but this is the proper way of storing the relation
             $item->shoppables()->save($cartItem);
 
-            if (!empty($attributes) && is_array($attributes)) {
-                foreach ($attributes as $attributeType => $attributeValues) {
-                    if ($type = Config::get('shop.attribute_models.' . $attributeType)) {
-                        if (is_array($attributeValues)) {
-                            foreach ($attributeValues as $cgr => $cAttr) {
-                                $attr = new $type();
-                                $attr->fillAttr($cgr, $cAttr);
+            // Save the attributes
+            $cartItem->itemAttributes()->saveMany($arrAttributeObjects);
 
-                                $class = Config::get('shop.item_attributes');
-                                $itemAttribute = new $class();
-                                // dd($itemAttribute);
-                                $itemAttribute->attributeObject()->associate($attr);
-
-                                $cartItem->itemAttributes()->save($itemAttribute);
-
-                            }
-                        }
-                    }
-                }
-            }
-/*
-            if (!empty($attributes['attribute']) && is_array($attributes['attribute'])) {
-                foreach($attributes['attribute'] as $cGr => $cAttr) {
-                    $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
-                        'item_id'                       => $cartItem->id,
-                        'group_value'                   => $cGr,
-                        'attribute_class'               => 'TypiCMS\Modules\Attributes\Shells\Models\Attribute',
-                        'attribute_reference_id'        => $cAttr,
-                        'attribute_value'               => null,
-                    ]);
-                }
-
-            }
-
-            if (!empty($attributes['custom']) && is_array($attributes['custom'])) {
-
-                foreach($attributes['custom'] as $cGr => $cAttr) {
-                    $cartItemAttributes = call_user_func( Config::get('shop.item_attributes') . '::create', [
-                        'item_id'                   => $cartItem->id,
-                        'group_value'               => $cGr,
-                        'attribute_class'           => 'TypiCMS\Modules\Attributes\Shells\Models\Attribute',
-                        'attribute_reference_id'    => null,
-                        'attribute_value'           => $cAttr,
-                    ]);
-                }
-
-            }
-*/
             $this->resetCalculations();
         } else {
             $this->increase($cartItem, $quantity, $quantityReset);
