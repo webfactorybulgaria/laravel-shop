@@ -256,7 +256,7 @@ class LaravelShop
             $order->save();
         }
         static::checkStatusChange($order, $statusCode);
-    } 
+    }
 
     /**
      * Formats any value to price format set in config.
@@ -267,6 +267,7 @@ class LaravelShop
      */
     public static function format($value)
     {
+        $formatFunction = Config::get('shop.display_price_number_format') ?: function($price) { return number_format($price, 2); };
         return preg_replace(
             [
                 '/:symbol/',
@@ -275,7 +276,7 @@ class LaravelShop
             ],
             [
                 Config::get('shop.currency_symbol'),
-                $value,
+                $formatFunction($value),
                 Config::get('shop.currency')
             ],
             Config::get('shop.display_price_format')
@@ -288,7 +289,7 @@ class LaravelShop
      * @return object
      */
     public static function gateway()
-    {   
+    {
         return static::$gateway;
     }
 
@@ -315,7 +316,7 @@ class LaravelShop
 
     /**
      * Retunes gateway object.
-     * @return object 
+     * @return object
      */
     protected static function instanceGateway()
     {
@@ -328,7 +329,7 @@ class LaravelShop
      * Check on order status differences and fires event.
      * @param object $order Order.
      * @param string $prevStatusCode Previous status code.
-     * @return void 
+     * @return void
      */
     protected static function checkStatusChange($order, $prevStatusCode)
     {
